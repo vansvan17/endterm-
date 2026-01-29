@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crimson Ops Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CSS STYLES --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            /* RED THEME PALETTE */
+            --primary-color: #800000;   /* Maroon */
+            --primary-light: #ff3333;   /* Bright Red (Highlights) */
+            --primary-dark: #2b0202;    /* Deep Blood Red */
+            
+            --bg-primary: #000000;      /* Pure Black */
+            --bg-secondary: #0f0202;    /* Near Black/Red tint */
+            --bg-tertiary: #1a0505;     /* Dark Card Background */
+
+            --text-primary: #ffffff;    
+            --text-secondary: #d1d1d1;  
+            --border-color: #4a0404;    
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            background-image: radial-gradient(circle at center, #1a0202 0%, #000000 100%);
+            min-height: 100vh;
+        }
+
+        .dashboard-container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+
+        /* Header */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .header-left h1 { font-weight: 900; text-transform: uppercase; letter-spacing: 1px; font-size: 1.8rem; }
+        .header-left p { color: var(--text-secondary); margin-top: 5px; font-size: 0.9rem; }
+
+        /* Buttons */
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--primary-color); color: white; border: 1px solid var(--primary-light); }
+        .btn-primary:hover { background: var(--primary-light); box-shadow: 0 0 10px var(--primary-color); }
+        .btn-secondary { background: transparent; border: 1px solid var(--text-secondary); color: var(--text-secondary); }
+        .btn-secondary:hover { border-color: white; color: white; }
+
+        /* Filters */
+        .filters-section {
+            background: var(--bg-tertiary);
+            padding: 1.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .filter-group label { font-size: 0.8rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; }
+        .filter-select {
+            padding: 0.6rem;
+            background: #000;
+            border: 1px solid var(--border-color);
+            color: white;
+            border-radius: 4px;
+            min-width: 180px;
+            cursor: pointer;
+        }
+        .filter-select:hover { border-color: var(--primary-light); }
+
+        /* KPI Cards */
+        .kpi-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .kpi-card {
+            background: var(--bg-tertiary);
+            padding: 1.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .kpi-icon { font-size: 2rem; background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .kpi-content h3 { color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px; }
+        .kpi-value { font-size: 1.8rem; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 5px; }
+        .kpi-change { font-size: 0.8rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+        .kpi-change.positive { color: #fff; background: #000; border: 1px solid #333; }
+        .kpi-change.negative { color: #ff9999; background: #5c0000; }
+
+        /* Visualizations Grid */
+        .visualizations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 1.5rem;
+        }
+        .viz-container {
+            background: var(--bg-tertiary);
+            padding: 1.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+        .viz-container.large { grid-column: span 2; }
+        .viz-header { margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .viz-header h2 { font-size: 1.1rem; color: white; }
+        .viz-subtitle { font-size: 0.8rem; color: var(--text-secondary); }
+        
+        .chart-container { min-height: 250px; position: relative; }
+
+        /* Tooltip */
+        .tooltip {
+            position: fixed;
+            background: #000;
+            border: 1px solid var(--primary-light);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+            z-index: 100;
+            color: white;
+        }
+        .tooltip.visible { opacity: 1; }
+
+        /* Bar Chart Styles */
+        .bar-chart { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
+        .bar-item { display: flex; align-items: center; gap: 1rem; }
+        .bar-label { min-width: 140px; font-size: 0.85rem; color: var(--text-secondary); text-align: right; }
+        .bar-wrapper { flex: 1; background: #000; height: 28px; border-radius: 4px; border: 1px solid #333; overflow: hidden; }
+        .bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            padding-left: 0.5rem;
+            border-right: 2px solid white;
+            white-space: nowrap;
+            transition: width 0.5s ease-out;
+        }
+
+        /* Pie Chart */
+        .pie-chart { display: flex; flex-direction: column; align-items: center; }
+        .pie-legend { display: flex; justify-content: center; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+        .legend-color { width: 12px; height: 12px; border-radius: 2px; }
+
+        /* Progress Bars */
+        .progress-indicators { display: flex; flex-direction: column; gap: 1.2rem; margin-top: 1rem; }
+        .progress-item { display: flex; flex-direction: column; gap: 5px; }
+        .progress-header { display: flex; justify-content: space-between; font-size: 0.9rem;}
+        .progress-value { color: var(--primary-light); font-weight: bold; }
+        .progress-bar-bg { background: #000; height: 8px; border-radius: 10px; border: 1px solid #333; overflow: hidden; }
+        .progress-bar-fill { background: var(--primary-color); height: 100%; border-radius: 10px; transition: width 0.5s ease-out; }
+
+        @media (max-width: 1000px) {
+            .viz-container.large { grid-column: span 1; }
+        }
+        @media (max-width: 600px) {
+            .dashboard-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .kpi-cards { grid-template-columns: 1fr; }
+            .bar-label { min-width: 100px; font-size: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        
+        <div class="dashboard-header">
+            <div class="header-left">
+                <h1>E-Commerce Analytics Dashboard</h1>
+                <p>Real-time sales performance and metrics</p>
+            </div>
+            <button class="btn btn-primary" onclick="refreshDashboard()">
+                <span>↻</span> Refresh Data
+            </button>
+        </div>
+
+        <section class="filters-section">
+            <div class="filter-group">
+                <label>Date Range</label>
+                <select class="filter-select" id="date-range" onchange="refreshDashboard()">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="365">All Time</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Category</label>
+                <select class="filter-select" id="category-select" onchange="refreshDashboard()">
+                    <option>All Categories</option>
+                    <option>Electronics</option>
+                    <option>Clothing</option>
+                    <option>Home & Garden</option>
+                    <option>Books</option>
+                    <option>Sports</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>&nbsp;</label>
+                <button class="btn btn-secondary" onclick="refreshDashboard()">Apply Filters</button>
+            </div>
+        </section>
+
+        <div class="kpi-cards">
+            <div class="kpi-card">
+                <div class="kpi-icon">💰</div>
+                <div class="kpi-content">
+                    <h3>Total Revenue</h3>
+                    <div class="kpi-value" id="kpi-revenue">$0</div>
+                    <span class="kpi-change" id="kpi-revenue-change">+0%</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">📦</div>
+                <div class="kpi-content">
+                    <h3>Total Orders</h3>
+                    <div class="kpi-value" id="kpi-orders">0</div>
+                    <span class="kpi-change" id="kpi-orders-change">+0%</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">📊</div>
+                <div class="kpi-content">
+                    <h3>Avg Order Value</h3>
+                    <div class="kpi-value" id="kpi-aov">$0</div>
+                    <span class="kpi-change" id="kpi-aov-change">+0%</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">👥</div>
+                <div class="kpi-content">
+                    <h3>Active Customers</h3>
+                    <div class="kpi-value" id="kpi-customers">0</div>
+                    <span class="kpi-change" id="kpi-customers-change">+0%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="visualizations-grid">
+            
+            <div class="viz-container large">
+                <div class="viz-header">
+                    <h2>Revenue Trend</h2>
+                    <span class="viz-subtitle" id="trend-subtitle">Daily revenue over time</span>
+                </div>
+                <div id="revenue-chart" class="chart-container"></div>
+            </div>
+
+            <div class="viz-container">
+                <div class="viz-header">
+                    <h2>Top Products</h2>
+                    <span class="viz-subtitle">Best selling items by revenue</span>
+                </div>
+                <div id="products-chart" class="chart-container"></div>
+            </div>
+
+            <div class="viz-container">
+                <div class="viz-header">
+                    <h2>Category Distribution</h2>
+                    <span class="viz-subtitle">Sales volume by category</span>
+                </div>
+                <div id="category-chart" class="chart-container"></div>
+            </div>
+
+            <div class="viz-container">
+                <div class="viz-header">
+                    <h2>Regional Sales</h2>
+                    <span class="viz-subtitle">Performance by geographic region</span>
+                </div>
+                <div id="regional-chart" class="chart-container"></div>
+            </div>
+
+            <div class="viz-container">
+                <div class="viz-header">
+                    <h2>Customer Metrics</h2>
+                    <span class="viz-subtitle">Acquisition & retention indicators</span>
+                </div>
+                <div id="customer-metrics" class="progress-indicators"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- CONSTANTS ---
+        const THEME = {
+            maroon: '#800000',
+            brightRed: '#ff3333',
+            darkRed: '#2b0202',
+            text: '#d1d1d1',
+            grid: '#220505',
+            axis: '#4a0404'
+        };
+
+        // --- CHART RENDERERS ---
+
+        function renderLineChart(data, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            
+            if (!data || data.length === 0) return;
+            
+            const width = container.clientWidth;
+            const height = 300;
+            const padding = { top: 20, right: 30, bottom: 40, left: 60 };
+            
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', width);
+            svg.setAttribute('height', height);
+            
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            const revenues = data.map(d => d.revenue);
+            const maxRevenue = Math.max(...revenues);
+            const minRevenue = Math.min(...revenues);
+            const revenueRange = maxRevenue - minRevenue || 1;
+            
+            const xScale = (index) => padding.left + (index / (data.length - 1)) * chartWidth;
+            const yScale = (value) => padding.top + chartHeight - ((value - minRevenue) / revenueRange) * chartHeight;
+            
+            // Gradient definition
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+            gradient.setAttribute('id', 'redGradient');
+            gradient.setAttribute('x1', '0%');
+            gradient.setAttribute('y1', '0%');
+            gradient.setAttribute('x2', '0%');
+            gradient.setAttribute('y2', '100%');
+            
+            const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop1.setAttribute('offset', '0%');
+            stop1.setAttribute('style', `stop-color:${THEME.brightRed};stop-opacity:0.3`);
+            
+            const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop2.setAttribute('offset', '100%');
+            stop2.setAttribute('style', `stop-color:${THEME.darkRed};stop-opacity:0`);
+            
+            gradient.appendChild(stop1);
+            gradient.appendChild(stop2);
+            defs.appendChild(gradient);
+            svg.appendChild(defs);
+            
+            // Grid Lines & Y Axis Labels
+            for (let i = 0; i <= 5; i++) {
+                const y = padding.top + (chartHeight / 5) * i;
+                const gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                gridLine.setAttribute('x1', padding.left);
+                gridLine.setAttribute('y1', y);
+                gridLine.setAttribute('x2', width - padding.right);
+                gridLine.setAttribute('y2', y);
+                gridLine.setAttribute('stroke', THEME.grid);
+                gridLine.setAttribute('stroke-width', '1');
+                svg.appendChild(gridLine);
+                
+                const value = maxRevenue - (revenueRange / 5) * i;
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', padding.left - 10);
+                label.setAttribute('y', y + 4);
+                label.setAttribute('text-anchor', 'end');
+                label.setAttribute('fill', THEME.text);
+                label.setAttribute('font-size', '11');
+                label.textContent = `$${Math.round(value/1000)}k`;
+                svg.appendChild(label);
+            }
+            
+            // Area Path
+            let areaPath = `M ${padding.left} ${height - padding.bottom}`;
+            data.forEach((point, i) => {
+                areaPath += ` L ${xScale(i)} ${yScale(point.revenue)}`;
+            });
+            areaPath += ` L ${xScale(data.length - 1)} ${height - padding.bottom} Z`;
+            
+            const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            area.setAttribute('d', areaPath);
+            area.setAttribute('fill', 'url(#redGradient)');
+            svg.appendChild(area);
+            
+            // Line Path
+            let linePath = `M ${xScale(0)} ${yScale(data[0].revenue)}`;
+            data.forEach((point, i) => { if (i > 0) linePath += ` L ${xScale(i)} ${yScale(point.revenue)}`; });
+            
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            line.setAttribute('d', linePath);
+            line.setAttribute('fill', 'none');
+            line.setAttribute('stroke', THEME.brightRed);
+            line.setAttribute('stroke-width', '2');
+            svg.appendChild(line);
+            
+            // Points (Only show points if data set is small, otherwise it gets crowded)
+            if (data.length < 50) {
+                data.forEach((point, i) => {
+                    const cx = xScale(i);
+                    const cy = yScale(point.revenue);
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', cx);
+                    circle.setAttribute('cy', cy);
+                    circle.setAttribute('r', '4');
+                    circle.setAttribute('fill', '#000');
+                    circle.setAttribute('stroke', THEME.brightRed);
+                    circle.setAttribute('stroke-width', '2');
+                    circle.style.cursor = 'pointer';
+                    
+                    circle.addEventListener('mouseenter', (e) => {
+                        circle.setAttribute('r', '6');
+                        circle.setAttribute('fill', '#fff');
+                        showTooltip(e, `Date: ${point.date.toLocaleDateString()}<br>Revenue: $${point.revenue.toLocaleString()}`);
+                    });
+                    
+                    circle.addEventListener('mouseleave', () => {
+                        circle.setAttribute('r', '4');
+                        circle.setAttribute('fill', '#000');
+                        hideTooltip();
+                    });
+                    svg.appendChild(circle);
+                });
+            }
+            
+            container.appendChild(svg);
+        }
+
+        function renderBarChart(data, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            
+            const chartDiv = document.createElement('div');
+            chartDiv.className = 'bar-chart';
+            const maxRevenue = Math.max(...data.map(item => item.revenue));
+            
+            data.forEach(item => {
+                const barItem = document.createElement('div');
+                barItem.className = 'bar-item';
+                
+                const label = document.createElement('div');
+                label.className = 'bar-label';
+                label.textContent = item.product;
+                
+                const barWrapper = document.createElement('div');
+                barWrapper.className = 'bar-wrapper';
+                
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                const percentage = (item.revenue / maxRevenue) * 100;
+                bar.style.width = `${percentage}%`;
+                bar.textContent = `$${(item.revenue/1000).toFixed(1)}k`;
+                
+                bar.addEventListener('mouseenter', (e) => showTooltip(e, `${item.product}<br>$${item.revenue.toLocaleString()}`));
+                bar.addEventListener('mouseleave', hideTooltip);
+
+                barWrapper.appendChild(bar);
+                barItem.appendChild(label);
+                barItem.appendChild(barWrapper);
+                chartDiv.appendChild(barItem);
+            });
+            container.appendChild(chartDiv);
+        }
+
+        function renderPieChart(data, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            
+            const chartDiv = document.createElement('div');
+            chartDiv.className = 'pie-chart';
+            
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 200 200');
+            svg.style.maxHeight = '200px';
+            
+            const colors = ['#800000', '#a30000', '#cc0000', '#ff3333', '#4a0404'];
+            let currentAngle = 0;
+            const centerX = 100, centerY = 100, radius = 80;
+            
+            data.forEach((item, index) => {
+                const angle = (item.percentage / 100) * 360;
+                const startRad = (currentAngle - 90) * (Math.PI / 180);
+                const endRad = (currentAngle + angle - 90) * (Math.PI / 180);
+                
+                const x1 = centerX + radius * Math.cos(startRad);
+                const y1 = centerY + radius * Math.sin(startRad);
+                const x2 = centerX + radius * Math.cos(endRad);
+                const y2 = centerY + radius * Math.sin(endRad);
+                
+                const largeArc = angle > 180 ? 1 : 0;
+                const pathData = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('fill', colors[index % colors.length]);
+                path.setAttribute('stroke', '#000');
+                path.setAttribute('stroke-width', '1');
+                
+                path.addEventListener('mouseenter', (e) => showTooltip(e, `${item.category}: ${item.percentage}%`));
+                path.addEventListener('mouseleave', hideTooltip);
+                
+                svg.appendChild(path);
+                currentAngle += angle;
+            });
+            
+            chartDiv.appendChild(svg);
+            
+            const legend = document.createElement('div');
+            legend.className = 'pie-legend';
+            data.forEach((item, index) => {
+                const lItem = document.createElement('div');
+                lItem.className = 'legend-item';
+                lItem.innerHTML = `<div class="legend-color" style="background:${colors[index % colors.length]}"></div><span>${item.category}</span>`;
+                legend.appendChild(lItem);
+            });
+            
+            chartDiv.appendChild(legend);
+            container.appendChild(chartDiv);
+        }
+
+        function renderProgressIndicators(metrics, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = metrics.map(m => `
+                <div class="progress-item">
+                    <div class="progress-header">
+                        <span class="progress-label">${m.label}</span>
+                        <span class="progress-value">${m.value}</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: ${m.percentage}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- UTILS ---
+        function showTooltip(e, html) {
+            let tooltip = document.getElementById('tooltip');
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.id = 'tooltip';
+                tooltip.className = 'tooltip';
+                document.body.appendChild(tooltip);
+            }
+            tooltip.innerHTML = html;
+            tooltip.classList.add('visible');
+            tooltip.style.left = (e.clientX + 15) + 'px';
+            tooltip.style.top = (e.clientY + 15) + 'px';
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            if (tooltip) tooltip.classList.remove('visible');
+        }
+
+        // --- DATA LOGIC (RESPONSIVE TO DROPDOWN) ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshDashboard();
+        });
+
+        function refreshDashboard() {
+            // 1. Get Selected Time Range
+            const rangeSelect = document.getElementById('date-range');
+            let days = 30; // Default
+            if (rangeSelect) {
+                days = parseInt(rangeSelect.value);
+            }
+
+            console.log(`Generating data for last ${days} days...`);
+            
+            // Update Subtitle
+            const trendSubtitle = document.getElementById('trend-subtitle');
+            if(trendSubtitle) trendSubtitle.textContent = `Daily revenue over the last ${days} days`;
+
+            // 2. Scale Totals based on days (Approximation for realism)
+            // Approx $15k per day avg
+            const avgDaily = 15000;
+            const revenueBase = avgDaily * days; 
+            
+            // Randomize totals slightly
+            const revenue = Math.floor(revenueBase * (0.8 + Math.random() * 0.4)); 
+            const orders = Math.floor((revenue / 75) * (0.9 + Math.random() * 0.2)); // ~$75 AOV
+            const aov = Math.floor(revenue / orders);
+            const customers = Math.floor(orders * 0.85);
+
+            updateElement('kpi-revenue', `$${revenue.toLocaleString()}`);
+            updateElement('kpi-orders', orders.toLocaleString());
+            updateElement('kpi-aov', `$${aov}`);
+            updateElement('kpi-customers', customers.toLocaleString());
+
+            updateChange('kpi-revenue-change');
+            updateChange('kpi-orders-change');
+            updateChange('kpi-aov-change');
+            updateChange('kpi-customers-change');
+
+            // 3. Render Charts
+            // Generate exact number of points based on selected days
+            const trendData = generateTrendData(days);
+            renderLineChart(trendData, 'revenue-chart');
+
+            // Scale product revenue to match timeline
+            const productScale = days / 30; // Scaling relative to a month
+            const productData = [
+                { product: "Gaming Laptop X1", revenue: Math.floor((Math.random() * 50000 + 20000) * productScale) },
+                { product: "Wireless Earbuds", revenue: Math.floor((Math.random() * 40000 + 15000) * productScale) },
+                { product: "Smart Watch V2", revenue: Math.floor((Math.random() * 35000 + 10000) * productScale) },
+                { product: "Mech Keyboard", revenue: Math.floor((Math.random() * 25000 + 5000) * productScale) },
+                { product: "4K Monitor", revenue: Math.floor((Math.random() * 20000 + 5000) * productScale) },
+            ].sort((a, b) => b.revenue - a.revenue);
+            renderBarChart(productData, 'products-chart');
+
+            const categoryData = [
+                { category: "Electronics", percentage: 45, revenue: 0 },
+                { category: "Clothing", percentage: 25, revenue: 0 },
+                { category: "Home", percentage: 20, revenue: 0 },
+                { category: "Books", percentage: 10, revenue: 0 },
+            ];
+            renderPieChart(categoryData, 'category-chart');
+
+            // Scale regional revenue
+            const regionalData = [
+                { product: "North America", revenue: Math.floor(revenue * 0.45) },
+                { product: "Europe", revenue: Math.floor(revenue * 0.30) },
+                { product: "Asia Pacific", revenue: Math.floor(revenue * 0.15) },
+                { product: "LatAm", revenue: Math.floor(revenue * 0.10) },
+            ];
+            renderBarChart(regionalData, 'regional-chart');
+
+            const customerMetrics = [
+                { label: "Retention Rate", value: "68%", percentage: 68 },
+                { label: "New Users", value: Math.floor(1240 * productScale).toLocaleString(), percentage: 85 },
+                { label: "Cart Abandonment", value: "42%", percentage: 42 },
+                { label: "Satisfaction Score", value: "4.8/5", percentage: 96 }
+            ];
+            renderProgressIndicators(customerMetrics, 'customer-metrics');
+        }
+
+        function updateElement(id, text) {
+            const el = document.getElementById(id);
+            if(el) el.textContent = text;
+        }
+
+        function updateChange(id) {
+            const el = document.getElementById(id);
+            if(!el) return;
+            const change = (Math.random() * 10 - 3).toFixed(1);
+            const isPositive = change >= 0;
+            el.textContent = `${isPositive ? '+' : ''}${change}%`;
+            el.className = `kpi-change ${isPositive ? 'positive' : 'negative'}`;
+        }
+
+        function generateTrendData(days) {
+            const data = [];
+            for(let i = days; i > 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                // Random daily revenue between 5k and 20k
+                data.push({
+                    date: d,
+                    revenue: Math.floor(Math.random() * (20000 - 5000) + 5000)
+                });
+            }
+            return data;
+        }
+    </script>
+</body>
+</html>
